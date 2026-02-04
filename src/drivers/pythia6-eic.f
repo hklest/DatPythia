@@ -60,6 +60,7 @@ c---------------------------------------------------------------------
       logical do_keep_pdg, keep_abs_pdg, keep_final_only, has_keep_pdg
       logical do_exclusive, excl_allow_rad
       logical is_exclusive_parent
+      logical simc_event_ok
       real*8 excl_mass_tol, excl_mass_flag
       COMMON /EXCLCUTS/ excl_mass_tol
       real*8 pxE,pyE,pzE,eE,pxP,pyP,pzP,eP,phiE,phiP,delPhi,bestPhi
@@ -174,13 +175,15 @@ C-----------------------------------------------------------------------
           read(PARAM2(ist:),*) excl_mass_flag
           excl_mass_tol = excl_mass_flag
           goto 100
-       else if (PARAM2(1:7) .eq. 'DO_SIMC') then
+       else if (PARAM2(1:7) .eq. 'DO_SIMC' .or.
+     &          PARAM2(1:7) .eq. 'do_simc') then
           ist = 8
           if (PARAM2(8:8) .eq. '=') ist = 9
           read(PARAM2(ist:),*) keep_final_flag
           do_simc_out = (keep_final_flag .ne. 0)
           goto 100
-       else if (PARAM2(1:22) .eq. 'DO_PYTHIA_EVENT_RECORD') then
+       else if (PARAM2(1:22) .eq. 'DO_PYTHIA_EVENT_RECORD' .or.
+     &          PARAM2(1:22) .eq. 'do_pythia_event_record') then
           ist = 23
           if (PARAM2(23:23) .eq. '=') ist = 24
           read(PARAM2(ist:),*) keep_final_flag
@@ -504,7 +507,65 @@ C----- Exclusive selection: ep -> ep + KEEP_PDG (no other particles) ---
          end if
 
          if ((msti(1).ge.91).and.(msti(1).le.94)) msti(16)=0
+        if (do_simc_out) then
+!----- determine if SIMC would write this event ------------------------
+         simc_event_ok = .false.
+         foundE = .false.
+         hasPhi = .false.
+         do I = 1, tracknr
+            if (abs(K(I,2)) .eq. 333) then
+               hasPhi = .true.
+               exit
+            end if
+            if (.not.foundE .and. K(I,1) .eq. 1           
+     &        .and. abs(K(I,2)) .eq. 11                
+     &        .and. K(I,3) .eq. 3) then
+               foundE = .true.
+               pxE = P(I,1)
+               pyE = P(I,2)
+               pzE = P(I,3)
+               eE  = P(I,4)
+            end if
+         ENDDO
+         if (.not.hasPhi .and. foundE) then
+            phiE0 = atan2(pyE,pxE)
+            if (phiE0 .lt. 0d0) phiE0 = phiE0 + twoPi
+            sectorWidth = twoPi / 12.d0
+            deltaphi    = 1.57079632679d0                          
+     &              - (int(phiE0/sectorWidth) + 0.5d0)*sectorWidth
+            cosd = cos(deltaphi)
+            sind = sin(deltaphi)
+            if (do_pion) then
+               targetPID = 211
+            else if (do_kaon) then
+               targetPID = 321
+            else
+               targetPID = 2212
+            end if
+            deg2rad = pi2/180.d0
+            maxOff  = 20.d0*deg2rad
+
+            do I = 1, tracknr
+               if (K(I,1) /= 1 .or. K(I,2) /= targetPID) cycle
+               phiP0 = atan2(P(I,2),P(I,1))
+               delPhi = phiE0 - phiP0
+               if (delPhi > pi2) then
+                  delPhi = delPhi - twoPi
+               end if
+               if (delPhi < -pi2) then
+                  delPhi = delPhi + twoPi
+               end if
+               off = abs(abs(delPhi) - pi2)
+               if (off > maxOff) cycle
+               simc_event_ok = .true.
+               exit
+            end do
+         end if
+        end if
         if (do_pythia_event_record) then    
+         if (do_simc_out .and. .not.simc_event_ok) then
+            goto 210
+         end if
          write(pythiaLun,32) 0, ievent, genevent, msti(1), msti(12), 
      &        msti(16), pari(34), msti(15), pari(33), pari(53), 
      &        VINT(309), VINT(307), trueX, trueW2, trueNu,
@@ -572,8 +633,9 @@ C----- Exclusive selection: ep -> ep + KEEP_PDG (no other particles) ---
              write(*,*)""
          endif
  34      format(2(I6,1x),I10,1x,3(I8,1x),8(f15.6,1x))
-         write(pythiaLun,*)'===== Event finished ==='
+         write(pythiaLun,*)'== Event finished =='
       end if
+ 210  continue
       if (do_simc_out) then
 !----- 1) veto φ and find the scattered e⁻ exactly as before ----------
          foundE = .false.
