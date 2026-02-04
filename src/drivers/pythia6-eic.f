@@ -23,6 +23,7 @@ C...Switches for nuclear correction
       DOUBLE PRECISION sqrts, radgamE, radgamp, radgamEnucl
       DOUBLE PRECISION pbeamE, pbeta, pgamma, ebeamE, epznucl
       CHARACTER PARAM*100
+      CHARACTER PARAM2*100
       LOGICAL UseLut, GenLut
 
 c ---------------------------------------------------------------------
@@ -50,6 +51,11 @@ c---------------------------------------------------------------------
       LOGICAL do_simc_out,do_proton,do_pion,do_kaon
       logical foundE,foundP,hasPhi
       integer je,jp
+      integer keep_pdg, keep_pdgabs_flag, keep_final_flag
+      integer excl_flag, excl_rad_flag, ist
+      logical do_keep_pdg, keep_abs_pdg, keep_final_only, has_keep_pdg
+      logical do_exclusive, excl_allow_rad
+      logical is_exclusive_parent
       real*8 pxE,pyE,pzE,eE,pxP,pyP,pzP,eP,phiE,phiP,delPhi,bestPhi
       real*8 vxloc
 
@@ -70,11 +76,17 @@ c ---------------------------------------------------------------------
        ltype=11
        masse=PYMASS(11)
        massp=PYMASS(2212)
-       ievent=0
-       genevent=0
-       lastgenevent=0
-       tracknr=0
-       RadState=0 ! Initial or Final State Radiation variable (use with RADGEN - 0 --> No Radiation)
+      ievent=0
+      genevent=0
+      lastgenevent=0
+      tracknr=0
+      RadState=0 ! Initial or Final State Radiation variable (use with RADGEN - 0 --> No Radiation)
+      keep_pdg        = 0
+      do_keep_pdg     = .false.
+      keep_abs_pdg    = .true.
+      keep_final_only = .false.
+      do_exclusive    = .false.
+      excl_allow_rad  = .false.
 
 C...Read output file name
        READ(*,*) outname
@@ -104,6 +116,50 @@ C...Read nuclear pdf correction order
        READ(*,*) ORDER
 C...Read information for cross section used in radgen
   100  READ(*,'(A)',END=200) PARAM
+       PARAM2 = ADJUSTL(PARAM)
+
+C--- Custom cards (do NOT forward to PYGIVE) ---------------------------
+C    Syntax (space-separated; optional '=' allowed):
+C      KEEP_PDG        223        (0 disables)
+C      KEEP_PDGABS     1          (1=abs match, 0=exact sign)
+C      KEEP_PDG_FINAL  1          (1=final-state only, i.e. K(I,1)=1)
+C      KEEP_EXCLUSIVE  1          (require exclusive ep -> ep + KEEP_PDG)
+C      EXCL_ALLOW_RAD  1          (allow radiative events if RadState!=0)
+C-----------------------------------------------------------------------
+
+       if (PARAM2(1:8) .eq. 'KEEP_PDG') then
+          ist = 9
+          if (PARAM2(9:9) .eq. '=') ist = 10
+          read(PARAM2(ist:),*) keep_pdg
+          do_keep_pdg = (keep_pdg .ne. 0)
+          goto 100
+       else if (PARAM2(1:11) .eq. 'KEEP_PDGABS') then
+          ist = 12
+          if (PARAM2(12:12) .eq. '=') ist = 13
+          read(PARAM2(ist:),*) keep_pdgabs_flag
+          keep_abs_pdg = (keep_pdgabs_flag .ne. 0)
+          goto 100
+       else if (PARAM2(1:14) .eq. 'KEEP_PDG_FINAL') then
+          ist = 15
+          if (PARAM2(15:15) .eq. '=') ist = 16
+          read(PARAM2(ist:),*) keep_final_flag
+          keep_final_only = (keep_final_flag .ne. 0)
+          goto 100
+       else if (PARAM2(1:14) .eq. 'KEEP_EXCLUSIVE') then
+          ist = 15
+          if (PARAM2(15:15) .eq. '=') ist = 16
+          read(PARAM2(ist:),*) excl_flag
+          do_exclusive = (excl_flag .ne. 0)
+          goto 100
+       else if (PARAM2(1:13) .eq. 'EXCL_ALLOW_RAD') then
+          ist = 14
+          if (PARAM2(14:14) .eq. '=') ist = 15
+          read(PARAM2(ist:),*) excl_rad_flag
+          excl_allow_rad = (excl_rad_flag .ne. 0)
+          goto 100
+       end if
+
+C--- Normal PYTHIA cards ------------------------------------------------
        CALL PYGIVE(PARAM)
        GOTO 100
 c ---------------------------------------------------------------------
@@ -356,6 +412,44 @@ C         write(*,*) radgamEnucl, radgamE, dplabg(3), radgamp
             nrtrack=tracknr
          endif
 
+C----- Optional event filter: require PDG to appear in event -----------
+         if (do_keep_pdg) then
+            has_keep_pdg = .false.
+            do I = 1, tracknr
+               if (keep_final_only) then
+                  if (K(I,1) .ne. 1) cycle
+               end if
+
+               if (keep_abs_pdg) then
+                  if (abs(K(I,2)) .eq. abs(keep_pdg)) then
+                     has_keep_pdg = .true.
+                     exit
+                  end if
+               else
+                  if (K(I,2) .eq. keep_pdg) then
+                     has_keep_pdg = .true.
+                     exit
+                  end if
+               end if
+            end do
+
+            if (.not.has_keep_pdg) cycle
+         end if
+
+C----- Exclusive selection: ep -> ep + KEEP_PDG (no other particles) ---
+         if (do_exclusive) then
+            if (.not. do_keep_pdg) then
+               write(*,*) 'ERROR: KEEP_EXCLUSIVE requires KEEP_PDG != 0'
+               stop
+            end if
+
+            if (.not. excl_allow_rad) then
+               if (RadState .ne. 0) cycle
+            end if
+
+            if (.not. is_exclusive_parent(keep_pdg, .false.)) cycle
+         end if
+
          if ((msti(1).ge.91).and.(msti(1).le.94)) msti(16)=0
         if (.not.do_simc_out) then    
          write(29,32) 0, ievent, genevent, msti(1), msti(12), 
@@ -538,6 +632,79 @@ C   normalisation the number is in microbarns
 C...Check pdf status       
        call PDFSTA
        END
+
+      logical function is_exclusive_parent(parent_pdg, allow_photons)
+      integer parent_pdg
+      logical allow_photons
+
+      include 'pythia-radcorr/pythia.inc'
+
+      integer i, mom
+      integer nE, nP, nParent
+      logical ok_from_parent
+
+      nE = 0
+      nP = 0
+      nParent = 0
+
+C-- count parent occurrences anywhere in record (decayed parent may be status 2)
+      do i = 1, N
+         if (abs(K(i,2)) .eq. abs(parent_pdg)) nParent = nParent + 1
+      end do
+
+      if (nParent .ne. 1) then
+         is_exclusive_parent = .false.
+         return
+      end if
+
+C-- loop over final-state particles only
+      do i = 1, N
+         if (K(i,1) .ne. 1) cycle
+
+C-- allow the scattered lepton and recoil proton
+         if (abs(K(i,2)) .eq. 11) then
+            nE = nE + 1
+            cycle
+         end if
+         if (K(i,2) .eq. 2212) then
+            nP = nP + 1
+            cycle
+         end if
+
+C-- optionally allow final-state photons (from PYJETS)
+         if (K(i,2) .eq. 22 .and. allow_photons) cycle
+
+C-- allow the parent itself if you kept it stable (parent as final-state)
+         if (abs(K(i,2)) .eq. abs(parent_pdg)) cycle
+
+C-- otherwise: require this final particle to descend from the parent
+         ok_from_parent = .false.
+         mom = K(i,3)
+  10     continue
+         if (mom .le. 0) goto 20
+         if (abs(K(mom,2)) .eq. abs(parent_pdg)) then
+            ok_from_parent = .true.
+            goto 20
+         end if
+         mom = K(mom,3)
+         goto 10
+
+  20     continue
+         if (.not. ok_from_parent) then
+            is_exclusive_parent = .false.
+            return
+         end if
+      end do
+
+C-- require exactly one scattered lepton and one proton
+      if (nE .eq. 1 .and. nP .eq. 1) then
+         is_exclusive_parent = .true.
+      else
+         is_exclusive_parent = .false.
+      end if
+
+      return
+      end
 
       ! ================================================================
       ! Return a kind=8 integer from the system clock.
