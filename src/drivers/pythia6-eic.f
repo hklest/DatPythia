@@ -515,7 +515,8 @@ C----- Exclusive selection: ep -> ep + KEEP_PDG (no other particles) ---
  32      format((I4,1x),(I10,1x),3(I4,1x),(I10,1x),f9.6,1x,
      &         I12,1x,
      &         2(f12.6,1x),7(f18.11,3x),12(f19.9,3x),I12)
-         write(pythiaLun,*)'============================================'
+         write(pythiaLun,*)'===================='//
+     &        '========================'
 
          DO I=1,tracknr
          if (K(I,3).le.nrtrack) then
@@ -571,7 +572,7 @@ C----- Exclusive selection: ep -> ep + KEEP_PDG (no other particles) ---
              write(*,*)""
          endif
  34      format(2(I6,1x),I10,1x,3(I8,1x),8(f15.6,1x))
-         write(pythiaLun,*)'=============== Event finished ==============='
+         write(pythiaLun,*)'=============== Event finished =============='
       end if
       if (do_simc_out) then
 !----- 1) veto φ and find the scattered e⁻ exactly as before ----------
