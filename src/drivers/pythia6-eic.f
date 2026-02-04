@@ -33,9 +33,12 @@ c ---------------------------------------------------------------------
 c---------------------------------------------------------------------
 c     ASCII output file
 c ---------------------------------------------------------------------
-      integer asciiLun
-      parameter (asciiLun=29)
-      CHARACTER*256 outputfilename
+      integer simcLun, pythiaLun
+      parameter (simcLun=29)
+      parameter (pythiaLun=30)
+      CHARACTER*256 simcfilename
+      CHARACTER*256 pythiafilename
+      CHARACTER*256 baseout
       CHARACTER*256 outname
       real*8 deg2rad, maxOff
 
@@ -48,7 +51,8 @@ c---------------------------------------------------------------------
       REAL pi2
       parameter(pi2=3.14159)
 
-      LOGICAL do_simc_out,do_proton,do_pion,do_kaon
+      LOGICAL do_simc_out, do_pythia_event_record
+      LOGICAL do_proton,do_pion,do_kaon
       logical foundE,foundP,hasPhi
       integer je,jp
       integer keep_pdg, keep_pdgabs_flag, keep_final_flag
@@ -64,7 +68,8 @@ c---------------------------------------------------------------------
 C       external pydata
 c ---------------------------------------------------------------------
 *  ---- user switches --------------------------------------------------
-      do_simc_out = .true.   ! leave .true. (only this branch extended)
+      do_simc_out = .false.
+      do_pythia_event_record = .true.
       do_proton    = .true.  ! default behaviour
       do_pion      = .false.
       do_kaon      = .false.
@@ -278,32 +283,56 @@ C      win=ebeam
 C      call pyinit('fixt','gamma/e-','p+', WIN)
 
 c ---------------------------------------------------------------------
-c     Open ascii output file
+c     Open ascii output file(s)
 c ---------------------------------------------------------------------
-       outputfilename=outname
-       open(asciiLun, file=outputfilename)
-       write(*,*) 'the outputfile will be named: ', outname
+       baseout = outname
+       if (len_trim(outname) .ge. 4) then
+          if (outname(len_trim(outname)-3:len_trim(outname)) .eq.
+     &        '.dat') then
+             baseout = outname(1:len_trim(outname)-4)
+          else if (outname(len_trim(outname)-3:len_trim(outname)) .eq.
+     &        '.txt') then
+             baseout = outname(1:len_trim(outname)-4)
+          end if
+       end if
+
+       if (.not. do_simc_out .and. .not. do_pythia_event_record) then
+          write(*,*) 'WARNING: do_simc=0 and do_pythia_event_record=0.'
+          write(*,*) 'WARNING: no output file will be written.'
+       end if
+
+       if (do_simc_out) then
+          simcfilename = trim(baseout)//'.dat'
+          open(simcLun, file=simcfilename)
+          write(*,*) 'SIMC output file: ', trim(simcfilename)
+       end if
+
+       if (do_pythia_event_record) then
+          pythiafilename = trim(baseout)//'.txt'
+          open(pythiaLun, file=pythiafilename)
+          write(*,*) 'PYTHIA event record file: ', trim(pythiafilename)
+       end if
 
 c ---------------------------------------------------------------------
 C...Event generation loop
 c ---------------------------------------------------------------------
 
 C   This is what we write in the ascii-file
-       IF(.not.do_simc_out) THEN
-        write(29,*)' PYTHIA EVENT FILE '
-        write(29,*)'============================================'
-        write(29,30) 
+       if (do_pythia_event_record) then
+        write(pythiaLun,*)' PYTHIA EVENT FILE '
+        write(pythiaLun,*)'============================================'
+        write(pythiaLun,30)
 30      format('I, ievent, genevent, subprocess, nucleon,
      &  targetparton, xtargparton, beamparton, xbeamparton,
      &  thetabeamprtn, truey, trueQ2, truex, trueW2, trueNu, leptonphi, 
      &  s_hat, t_hat, u_hat, pt2_hat, Q2_hat, F2, F1, R, sigma_rad, 
      &  SigRadCor, EBrems, photonflux, t-diff, nrTracks')
-        write(29,*)'============================================'
+        write(pythiaLun,*)'============================================'
 
-        write(29,*)' I  K(I,1)  K(I,2)  K(I,3)  K(I,4)  K(I,5)
+        write(pythiaLun,*)' I  K(I,1)  K(I,2)  K(I,3)  K(I,4)  K(I,5)
      &  P(I,1)  P(I,2)  P(I,3)  P(I,4)  P(I,5)  V(I,1)  V(I,2)  V(I,3)'
-        write(29,*)'============================================'
-      ENDIF
+        write(pythiaLun,*)'============================================'
+      end if
         ! write(*,*) ''
         ! write(*,*) 'New Event:'
         ! write(*,*) 'mcRadCor_EBrems                       = ', mcRadCor_EBrems
@@ -451,8 +480,8 @@ C----- Exclusive selection: ep -> ep + KEEP_PDG (no other particles) ---
          end if
 
          if ((msti(1).ge.91).and.(msti(1).le.94)) msti(16)=0
-        if (.not.do_simc_out) then    
-         write(29,32) 0, ievent, genevent, msti(1), msti(12), 
+        if (do_pythia_event_record) then    
+         write(pythiaLun,32) 0, ievent, genevent, msti(1), msti(12), 
      &        msti(16), pari(34), msti(15), pari(33), pari(53), 
      &        VINT(309), VINT(307), trueX, trueW2, trueNu,
      &        VINT(313), pari(14), pari(15), pari(16), 
@@ -462,11 +491,11 @@ C----- Exclusive selection: ep -> ep + KEEP_PDG (no other particles) ---
  32      format((I4,1x),(I10,1x),3(I4,1x),(I10,1x),f9.6,1x,
      &         I12,1x,
      &         2(f12.6,1x),7(f18.11,3x),12(f19.9,3x),I12)
-         write(29,*)'============================================'
+         write(pythiaLun,*)'============================================'
 
          DO I=1,tracknr
          if (K(I,3).le.nrtrack) then
-         write(29,34) I,K(I,1),K(I,2),K(I,3),K(I,4),K(I,5),
+         write(pythiaLun,34) I,K(I,1),K(I,2),K(I,3),K(I,4),K(I,5),
      &        P(I,1),P(I,2),P(I,3),P(I,4),P(I,5),
      &        V(I,1),V(I,2),V(I,3)
          endif
@@ -503,7 +532,7 @@ C----- Exclusive selection: ep -> ep + KEEP_PDG (no other particles) ---
                 ! The beam or target PIDs changed before getting to radgen - cannot modify in case of ISR
                 ! Specifically for if the beam and target are not an electron and proton (other configurations not available yet)
                 ! If the beam's PID changed, but the event would be FSR, then the photon's status will still be 56 (57 is only used for if it should have been 55 if not for the different PID)
-            write(29,34) nrtrack, 54+RadState, 22, 1, 0, 0,
+            write(pythiaLun,34) nrtrack, 54+RadState, 22, 1, 0, 0,
      &      sngl(dplabg(1)),sngl(dplabg(2)),sngl(-radgamp),
      &      sngl(radgamE), 0., 0., 0., 0.
          else if (RadState.NE.0) then
@@ -518,8 +547,9 @@ C----- Exclusive selection: ep -> ep + KEEP_PDG (no other particles) ---
              write(*,*)""
          endif
  34      format(2(I6,1x),I10,1x,3(I8,1x),8(f15.6,1x))
-         write(29,*)'=============== Event finished ==============='
-      else
+         write(pythiaLun,*)'=============== Event finished ==============='
+      end if
+      if (do_simc_out) then
 !----- 1) veto φ and find the scattered e⁻ exactly as before ----------
          foundE = .false.
          hasPhi = .false.
@@ -596,7 +626,7 @@ C----- Exclusive selection: ep -> ep + KEEP_PDG (no other particles) ---
          call random_number(vxloc)
          vxloc = -7.5d0 + 15.d0 * vxloc
 
-         write(29,'(11F12.6)') 
+         write(simcLun,'(11F12.6)') 
      &      pxP,pyP,pzP,eP,vxloc,
      &      pxE,pyE,pzE,eE,vxloc,1.0
 
@@ -622,7 +652,12 @@ C   normalisation the number is in microbarns
        write(*,*)'Total Number of generated events', MSTI(5)
        write(*,*)'Total Number of trials', NGEN(0,3)
        write(*,*)'==================================================='
-       close(29)
+       if (do_simc_out) then
+          close(simcLun)
+       end if
+       if (do_pythia_event_record) then
+          close(pythiaLun)
+       end if
 
   500  if (qedrad.eq.2) then
          write(*,*) 'lookup table is generated;'
