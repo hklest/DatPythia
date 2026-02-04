@@ -1,0 +1,223 @@
+"KaonLT_Q3W3loweps.dat"
+11                              ! lepton beam type
+0,8.213                        ! proton and electron beam energy
+1000,1000                       ! Number of events, number of events to print to st
+0.15,0.35                         ! xmin and xmax
+0.74,0.81                         ! ymin and ymax
+2.0,4.0                         ! Q2min and Q2max
+ALLM,1990                         ! F2-Model, R-Parametrisation
+0                                 ! switch for rad corrections; 0:no, 1:yes, 2:gen.lookup table, requires radgen/ subdir
+1                                 ! Pythia-Model = 0 standard GVMD generation in Pythia-x and Q2; = 1 GVMD model with generation in y and Q2 as for radgen  DEFAULT is 1!
+1,1                               ! A-Tar and Z-Tar
+1,1                               ! nuclear pdf parameter1: nucleon mass number A, charge number Z
+101                               ! nuclear pdf parameter2: correction order x*100+y x= 1:LO, 2:NLO y:error set
+DO_SIMC 0
+DO_PYTHIA_EVENT_RECORD 1
+MSEL=2
+MSTP(1)=2              ! maximum number of generations
+MSTP(2)=1              ! first-order running \alpha_s
+MSTP(3)=2              ! selection of Lambda value in \alpha_s 2= PDF's parametrization
+MSTP(4)=0
+MSTP(5)=0
+MSTP(7)=0
+MSTP(8)=0
+MSTP(9)=0
+MSTP(11)=1             ! use of electron parton dis. in ep or e+e- interaction
+MSTP(12)=0
+MSTP(13)=2             ! choice of Q2 range : 2= range set by parp(13)
+MSTP(14)=30            ! default : structure of incoming photon beam or target.
+MSTP(15)=0
+MSTP(16)=1             ! choice of definition of fractional momentum by photon radiated off a lepton y : ligh-cone fraction
+MSTP(18)=6
+MSTP(18)=3             !p_\perp-minfor direct processes: 2-from PARP(15), 3-same as for VMD/GVMD states
+MSTP(19)=4             !(D=4) choice of partonic cross section in the DIS process 99
+MSTP(20)=4             !(D=3) suppression of resolved (VMD or GVMD) cross sections, introduced to compensate for an overlap with DIS processes in the region of intermediate Q2 and rather small W2: 0-no suppression, >1 by a factor (W2/(W2+Q1^2+Q2^2)^MSTP(20)
+MSTP(21)=1
+MSTP(22)=0
+MSTP(23)=1
+MSTP(31)=1
+MSTP(32)=8
+MSTP(33)=0
+MSTP(34)=1
+MSTP(35)=0
+MSTP(36)=2
+MSTP(37)=1
+MSTP(38)=4
+MSTP(39)=2
+MSTP(40)=0
+MSTP(41)=2             !(D=2) master switch for all resonance decays: 0-all off, 1all on, 2-on depending on MDCY
+MSTP(42)=1
+MSTP(43)=3
+MSTP(44)=7
+MSTP(45)=3
+MSTP(46)=1
+MSTP(47)=1
+MSTP(48)=0
+MSTP(49)=1
+MSTP(50)=0
+MSTP(51)=11            ! if pdflib is linked than non pythia-pdfs are available, like MSTP(51)=4046
+MSTP(52)=1             ! ---> pdflib used MSTP   52=2
+MSTP(53)=3
+MSTP(54)=1
+MSTP(55)=5
+MSTP(56)=1
+MSTP(57)=1
+MSTP(58)=4
+MSTP(59)=1
+MSTP(60)=7
+MSTP(61)=0             ! (D=1) switch for initial-state QCD and QED radiation: 0-off, 1-on
+MSTP(62)=3
+MSTP(63)=2
+MSTP(64)=2
+MSTP(65)=1
+MSTP(66)=5
+MSTP(67)=2
+MSTP(68)=1
+MSTP(69)=0
+MSTP(71)=0             !0- no final-state showers
+MSTP(81)=0             !0- Multiple-Parton Scattering off, 1-ON
+MSTP(82)=1             !Multiple interactions assuming the same probability, with an abrupt cut-off PTmin=PARP(81)
+MSTP(83)=100           !3- Multiple interactions assuming a varying impact parameter and a hadronic matter overlap consistent with a single Gaussian matter distribution, with a smooth turn-off PT0=PARP(82), 4- Multiple interactions assuming a varying impact parameter and a hadronic matter overlap consistent with a double Gaussian matter distribution (governed by PARP(83) and PARP(84)), with a smooth turn-off PT0=PARP(82)
+MSTP(86)=2
+MSTP(91)=1
+MSTP(92)=4
+MSTP(93)=1             !(D=1) (C) primordial k_T-distribution 0-no k_T, 1-Gaussian, width given in PARP(99), upper cut-off inPARP(100), 3,4,5-power like.
+MSTP(94)=3
+MSTP(101)=3            !(D = 3) (C) structure of diffractive system.
+MSTP(102)=1
+MSTP(111)=1            !0- no hadronization
+MSTP(121)=1            ! (D=0) calculation of kinematics selection coefficients 1-to be calculated at initialization with value then obtained is to be multiplied by PARP(121)
+MSTP(125)=1            !  (D=1) Documentation of partonic process
+MSTP(131)=0
+MSTP(171)=0
+MSTP(172)=2
+MSTP(173)=0
+PARP(1)=0.25
+PARP(2)=2              !(D=10. GeV) lowest c.m. energy for the event as a whole that the program will accept to simulate
+PARP(13)=1
+PARP(14)=0.01
+PARP(15)=0.5
+PARP(16)=1
+PARP(17)=1
+PARP(18)=0.17
+PARP(61)=0.25
+PARP(62)=0.5
+PARP(63)=0.25
+PARP(64)=1
+PARP(65)=0.5
+PARP(66)=0.001
+PARP(67)=1.
+PARP(68)=0.001
+PARP(71)=4.
+PARP(72)=0.25
+PARP(81)=1.9
+PARP(82)=2.1
+PARP(89)=1000
+PARP(90)=0.16
+PARP(91)=0.4
+PARP(93)=2.
+PARP(94)=1.
+PARP(95)=0.
+PARP(96)=3.
+PARP(97)=1.
+PARP(98)=0.75
+PARP(99)=0.64          ! Gaussian, width given in PARP(99) , upper cut-off in PARP(100)
+PARP(100)=5
+PARP(102)=0.5
+PARP(103)=0.5
+PARP(104)=0.3
+PARP(111)=1.0          !(D=2. GeV) used to define the minimum invariant mass of the remnanthadronic system
+PARP(121)=2.0          !***(D=1. GeV) the maxima obtained at initial maximization are multiplied bythis factor if MSTP(121) = 1
+PARP(161)=3.0
+PARP(162)=24.6
+PARP(163)=18.8
+PARP(164)=11.5
+PARP(165)=0.5          !(D=0.5) a simple multiplicative factor applied to the cross section for the transverse resolved photons to take into account the effects of longitudinal resolved photons, see MSTP(17)
+PARP(166)=0.67597
+! Now come all the switches for Jetset
+PARJ(1)=0.029
+PARJ(2)=0.3            ! default
+PARJ(3)=0.4            !default
+PARJ(4)=0.05
+PARJ(5)=0.5
+PARJ(6)=0.5
+PARJ(7)=0.5
+PARJ(11)=0.7           ! default PARJ(11) fraction of spin 1 light mesons (rho)
+PARJ(12)=0.75          !is the probability that a strange meson has spin 1, put 0.75 to  get Kaon suppression.
+! Added below because they were in clasDIS.F
+PARJ(14)=0.0
+PARJ(15)=0.0
+PARJ(16)=0.0
+PARJ(17)=0.0
+! Added above because they were in clasDIS.F
+PARJ(21)= 0.5          !(D = 0.36 GeV) corresponds to the width of Gaussian px and pytransverse momentum dist.s for primary hadrons. See also PARJ(22) -PARJ(24)
+PARJ(23)=0.01
+PARJ(24)=2.0
+PARJ(26)=0.05
+PARJ(32)=1.0
+PARJ(33)= 0.3          !(D = 0.8 GeV, 1.5 GeV) are, together with quark masses, usedto define the remaining energy below which the fragmentation of a parton systemis stopped and two final hadrons formed.
+PARJ(41)= 1.2          !(D = 0.3, 0.58 GeVÂ¡Ã2) give the a and b parameters of the symmetricLund fragmentation function
+PARJ(42)= 0.58
+PARJ(45)= 0.5          !(D = 0.5) the amount by which the effective a parameter in the Lund flavourdependentsymmetric fragmentation function is assumed to be larger than thenormal a when diquarks are produced.
+! !Added from clasdis (not recoginized by pythia)
+! PARL(3)=0.64
+! LST(15)=145 ! PDF set
+! LST(8)=1    ! QCD mechanism
+! !Added (above) from clasdis
+MSTJ(1)=1
+MSTJ(2)=3
+MSTJ(3)=0
+MSTJ(12)=1
+MSTJ(40)=0
+MSTJ(45)=4
+MSTU(112)=4            !(D = 5) the nominal number of flavours assumed in the \alpha_s expression, withrespect to which \Lambda is defined.
+MSTU(113)=4
+MSTU(114)=4
+! Now all the CKINs for pythia
+CKIN(1)=1.             ! range allow m = sqrt(s)
+CKIN(2)=-1.            ! unpper limit inactive
+CKIN(3)=0.             ! p_perp for hard 2->2 process
+CKIN(4)=-1.
+CKIN(5)=1.00           ! lower cut-off p_perp
+CKIN(6)=1.00
+CKIN(7)=-10.           ! scattering subsystem rapidity
+CKIN(8)=10.
+CKIN(9)=-10.           ! true rapidity
+CKIN(10)=10.
+CKIN(11)=-10.
+CKIN(12)=10.
+CKIN(13)=-10.
+CKIN(14)=10.
+CKIN(15)=-10.
+CKIN(16)=10.
+CKIN(17)=-1.
+CKIN(18)=1.
+CKIN(19)=-1.
+CKIN(20)=1.
+CKIN(21)=0.
+CKIN(22)=1.
+CKIN(23)=0.
+CKIN(24)=1.
+CKIN(25)=-1.
+CKIN(26)=1.
+CKIN(27)=-1.
+CKIN(28)=1.
+CKIN(31)=2.
+CKIN(32)=-1.
+CKIN(35)=0.            ! -t rnage
+CKIN(36)=2.            ! no upper limit of -t
+CKIN(37)=0.            ! -u rnage
+CKIN(38)=-1.           ! no upper limit of -u
+CKIN(39)=8.3           ! W2 = Q2(1-x)/x
+CKIN(40)=11.7           ! upper limit for W2
+CKIN(65)=1.e-09        ! allow ange for the space-like virtuality of the photn = Q2
+CKIN(66)=100.
+CKIN(67)=-1
+CKIN(68)=0.            ! allow ange for the space-like virtuality of the photn = Q2
+CKIN(66)=-1
+CKIN(69)=1.10     ! Theta angle of the scattered electron in the CM frame (14 degrees in lab frame)
+CKIN(70)=-1.           ! \pi=180deg. of thetaangle
+CKIN(71)=1.10            ! allow range of the scattering angle (theta) of the lepton
+CKIN(72)=-1.           ! \pi=180deg. of thetaangle
+CKIN(77)=2.9
+CKIN(78)=3.4           ! allow for W range  negative means inactive.
