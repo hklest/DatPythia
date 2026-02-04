@@ -633,7 +633,7 @@ C----- Exclusive selection: ep -> ep + KEEP_PDG (no other particles) ---
              write(*,*)""
          endif
  34      format(2(I6,1x),I10,1x,3(I8,1x),8(f15.6,1x))
-         write(pythiaLun,*)'============ Event finished ============'
+         write(pythiaLun,*)'== Event finished =='
       end if
  210  continue
       if (do_simc_out) then
