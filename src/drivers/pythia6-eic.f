@@ -60,6 +60,8 @@ c---------------------------------------------------------------------
       logical do_keep_pdg, keep_abs_pdg, keep_final_only, has_keep_pdg
       logical do_exclusive, excl_allow_rad
       logical is_exclusive_parent
+      real*8 excl_mass_tol, excl_mass_flag
+      COMMON /EXCLCUTS/ excl_mass_tol
       real*8 pxE,pyE,pzE,eE,pxP,pyP,pzP,eP,phiE,phiP,delPhi,bestPhi
       real*8 vxloc
 
@@ -92,6 +94,7 @@ c ---------------------------------------------------------------------
       keep_final_only = .false.
       do_exclusive    = .false.
       excl_allow_rad  = .false.
+      excl_mass_tol   = 0.05d0
 
 C...Read output file name
        READ(*,*) outname
@@ -130,6 +133,9 @@ C      KEEP_PDGABS     1          (1=abs match, 0=exact sign)
 C      KEEP_PDG_FINAL  1          (1=final-state only, i.e. K(I,1)=1)
 C      KEEP_EXCLUSIVE  1          (require exclusive ep -> ep + KEEP_PDG)
 C      EXCL_ALLOW_RAD  1          (allow radiative events if RadState!=0)
+C      EXCL_MASS_TOL   0.05       (GeV, hadronic system mass tolerance)
+C      DO_SIMC         1          (1=write SIMC .dat output)
+C      DO_PYTHIA_EVENT_RECORD 1   (1=write PYTHIA event record .txt)
 C-----------------------------------------------------------------------
 
        if (PARAM2(1:8) .eq. 'KEEP_PDG') then
@@ -161,6 +167,24 @@ C-----------------------------------------------------------------------
           if (PARAM2(14:14) .eq. '=') ist = 15
           read(PARAM2(ist:),*) excl_rad_flag
           excl_allow_rad = (excl_rad_flag .ne. 0)
+          goto 100
+       else if (PARAM2(1:13) .eq. 'EXCL_MASS_TOL') then
+          ist = 14
+          if (PARAM2(14:14) .eq. '=') ist = 15
+          read(PARAM2(ist:),*) excl_mass_flag
+          excl_mass_tol = excl_mass_flag
+          goto 100
+       else if (PARAM2(1:7) .eq. 'DO_SIMC') then
+          ist = 8
+          if (PARAM2(8:8) .eq. '=') ist = 9
+          read(PARAM2(ist:),*) keep_final_flag
+          do_simc_out = (keep_final_flag .ne. 0)
+          goto 100
+       else if (PARAM2(1:22) .eq. 'DO_PYTHIA_EVENT_RECORD') then
+          ist = 23
+          if (PARAM2(23:23) .eq. '=') ist = 24
+          read(PARAM2(ist:),*) keep_final_flag
+          do_pythia_event_record = (keep_final_flag .ne. 0)
           goto 100
        end if
 
@@ -669,26 +693,39 @@ C...Check pdf status
        END
 
       logical function is_exclusive_parent(parent_pdg, allow_photons)
-      implicit none
+      include 'pythia-radcorr/pythia.inc'
       integer parent_pdg
       logical allow_photons
 
-      include 'pythia-radcorr/pythia.inc'
-
       integer i, mom
-      integer nE, nP, nParent
+      integer nE, nP, nParent, nParentFinal
       logical ok_from_parent
+      real*8 sum_px, sum_py, sum_pz, sum_e, mass2, inv_mass
+      real*8 excl_mass_tol
+      COMMON /EXCLCUTS/ excl_mass_tol
 
       nE = 0
       nP = 0
       nParent = 0
+      nParentFinal = 0
+      sum_px = 0d0
+      sum_py = 0d0
+      sum_pz = 0d0
+      sum_e = 0d0
 
 C-- count parent occurrences anywhere in record (decayed parent may be status 2)
       do i = 1, N
-         if (abs(K(i,2)) .eq. abs(parent_pdg)) nParent = nParent + 1
+         if (abs(K(i,2)) .eq. abs(parent_pdg)) then
+            nParent = nParent + 1
+            if (K(i,1) .eq. 1) nParentFinal = nParentFinal + 1
+         end if
       end do
 
-      if (nParent .ne. 1) then
+      if (nParent .lt. 1) then
+         is_exclusive_parent = .false.
+         return
+      end if
+      if (nParentFinal .gt. 1) then
          is_exclusive_parent = .false.
          return
       end if
@@ -711,7 +748,13 @@ C-- optionally allow final-state photons (from PYJETS)
          if (K(i,2) .eq. 22 .and. allow_photons) cycle
 
 C-- allow the parent itself if you kept it stable (parent as final-state)
-         if (abs(K(i,2)) .eq. abs(parent_pdg)) cycle
+         if (abs(K(i,2)) .eq. abs(parent_pdg)) then
+            sum_px = sum_px + dble(P(i,1))
+            sum_py = sum_py + dble(P(i,2))
+            sum_pz = sum_pz + dble(P(i,3))
+            sum_e  = sum_e  + dble(P(i,4))
+            cycle
+         end if
 
 C-- otherwise: require this final particle to descend from the parent
          ok_from_parent = .false.
@@ -730,11 +773,27 @@ C-- otherwise: require this final particle to descend from the parent
             is_exclusive_parent = .false.
             return
          end if
+         sum_px = sum_px + dble(P(i,1))
+         sum_py = sum_py + dble(P(i,2))
+         sum_pz = sum_pz + dble(P(i,3))
+         sum_e  = sum_e  + dble(P(i,4))
       end do
 
 C-- require exactly one scattered lepton and one proton
       if (nE .eq. 1 .and. nP .eq. 1) then
-         is_exclusive_parent = .true.
+         if (sum_e .le. 0d0) then
+            is_exclusive_parent = .false.
+            return
+         end if
+         mass2 = sum_e**2 - sum_px**2 - sum_py**2 - sum_pz**2
+         if (mass2 .lt. 0d0) mass2 = 0d0
+         inv_mass = sqrt(mass2)
+         if (abs(inv_mass - dble(PYMASS(parent_pdg))) .le.
+     &       excl_mass_tol) then
+            is_exclusive_parent = .true.
+         else
+            is_exclusive_parent = .false.
+         end if
       else
          is_exclusive_parent = .false.
       end if
