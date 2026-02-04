@@ -130,8 +130,6 @@ C      KEEP_PDGABS     1          (1=abs match, 0=exact sign)
 C      KEEP_PDG_FINAL  1          (1=final-state only, i.e. K(I,1)=1)
 C      KEEP_EXCLUSIVE  1          (require exclusive ep -> ep + KEEP_PDG)
 C      EXCL_ALLOW_RAD  1          (allow radiative events if RadState!=0)
-C      DO_SIMC         1          (1=write SIMC .dat output)
-C      DO_PYTHIA_EVENT_RECORD 1   (1=write PYTHIA event record .txt)
 C-----------------------------------------------------------------------
 
        if (PARAM2(1:8) .eq. 'KEEP_PDG') then
@@ -163,18 +161,6 @@ C-----------------------------------------------------------------------
           if (PARAM2(14:14) .eq. '=') ist = 15
           read(PARAM2(ist:),*) excl_rad_flag
           excl_allow_rad = (excl_rad_flag .ne. 0)
-          goto 100
-       else if (PARAM2(1:7) .eq. 'DO_SIMC') then
-          ist = 8
-          if (PARAM2(8:8) .eq. '=') ist = 9
-          read(PARAM2(ist:),*) keep_final_flag
-          do_simc_out = (keep_final_flag .ne. 0)
-          goto 100
-       else if (PARAM2(1:22) .eq. 'DO_PYTHIA_EVENT_RECORD') then
-          ist = 23
-          if (PARAM2(23:23) .eq. '=') ist = 24
-          read(PARAM2(ist:),*) keep_final_flag
-          do_pythia_event_record = (keep_final_flag .ne. 0)
           goto 100
        end if
 
@@ -683,32 +669,26 @@ C...Check pdf status
        END
 
       logical function is_exclusive_parent(parent_pdg, allow_photons)
-      include 'pythia-radcorr/pythia.inc'
+      implicit none
       integer parent_pdg
       logical allow_photons
 
+      include 'pythia-radcorr/pythia.inc'
+
       integer i, mom
-      integer nE, nP, nParent, nParentFinal
+      integer nE, nP, nParent
       logical ok_from_parent
 
       nE = 0
       nP = 0
       nParent = 0
-      nParentFinal = 0
 
 C-- count parent occurrences anywhere in record (decayed parent may be status 2)
       do i = 1, N
-         if (abs(K(i,2)) .eq. abs(parent_pdg)) then
-            nParent = nParent + 1
-            if (K(i,1) .eq. 1) nParentFinal = nParentFinal + 1
-         end if
+         if (abs(K(i,2)) .eq. abs(parent_pdg)) nParent = nParent + 1
       end do
 
-      if (nParent .lt. 1) then
-         is_exclusive_parent = .false.
-         return
-      end if
-      if (nParentFinal .gt. 1) then
+      if (nParent .ne. 1) then
          is_exclusive_parent = .false.
          return
       end if
