@@ -1,0 +1,8 @@
+bin/
+Work/
+*.root
+*~
+\#*\#
+.DS_Store
+*.txt
+
