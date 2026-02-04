@@ -634,6 +634,7 @@ C...Check pdf status
        END
 
       logical function is_exclusive_parent(parent_pdg, allow_photons)
+      implicit none
       integer parent_pdg
       logical allow_photons
 
