@@ -58,6 +58,7 @@ c---------------------------------------------------------------------
       integer keep_pdg, keep_pdgabs_flag, keep_final_flag
       integer excl_flag, excl_rad_flag, ist
       CHARACTER key*100, value*100
+      character*100 upcase
       logical do_keep_pdg, keep_abs_pdg, keep_final_only, has_keep_pdg
       logical do_exclusive, excl_allow_rad
       logical is_exclusive_parent
