@@ -188,7 +188,9 @@ C-----------------------------------------------------------------------
           excl_mass_tol = excl_mass_flag
           goto 100
        else if (PARAM2(1:9) .eq. 'ELEC_SPEC' .or.
-     &          PARAM2(1:9) .eq. 'elec_spec') then
+     &          PARAM2(1:9) .eq. 'elec_spec' .or.
+     &          PARAM2(1:9) .eq. 'ELEC SPEC' .or.
+     &          PARAM2(1:9) .eq. 'elec spec') then
           ist = 10
           if (PARAM2(10:10) .eq. '=') ist = 11
           read(PARAM2(ist:),*) elec_spec_flag
@@ -196,7 +198,9 @@ C-----------------------------------------------------------------------
           elec_in_shms = (elec_spec_flag .eq. 2)
           goto 100
        else if (PARAM2(1:11) .eq. 'HADRON_SPEC' .or.
-     &          PARAM2(1:11) .eq. 'hadron_spec') then
+     &          PARAM2(1:11) .eq. 'hadron_spec' .or.
+     &          PARAM2(1:11) .eq. 'HADRON SPEC' .or.
+     &          PARAM2(1:11) .eq. 'hadron spec') then
           ist = 12
           if (PARAM2(12:12) .eq. '=') ist = 13
           read(PARAM2(ist:),*) hadron_spec_flag
@@ -204,9 +208,15 @@ C-----------------------------------------------------------------------
           hadron_in_shms = (hadron_spec_flag .eq. 2)
           goto 100
        else if (PARAM2(1:9) .eq. 'HADRON_PID' .or.
-     &          PARAM2(1:9) .eq. 'hadron_pid') then
+     &          PARAM2(1:9) .eq. 'hadron_pid' .or.
+     &          PARAM2(1:10) .eq. 'HADRON PID' .or.
+     &          PARAM2(1:10) .eq. 'hadron pid') then
           ist = 10
-          if (PARAM2(10:10) .eq. '=') ist = 11
+          if (PARAM2(10:10) .eq. '=') then
+             ist = 11
+          else if (PARAM2(10:10) .eq. ' ') then
+             ist = 11
+          end if
           read(PARAM2(ist:),*) hadron_pid_flag
           if (hadron_pid_flag .eq. 211) then
              do_pion = .true.
