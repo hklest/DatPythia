@@ -187,21 +187,24 @@ C-----------------------------------------------------------------------
           read(PARAM2(ist:),*) excl_mass_flag
           excl_mass_tol = excl_mass_flag
           goto 100
-       else if (PARAM2(1:9) .eq. 'ELEC_SPEC') then
+       else if (PARAM2(1:9) .eq. 'ELEC_SPEC' .or.
+     &          PARAM2(1:9) .eq. 'elec_spec') then
           ist = 10
           if (PARAM2(10:10) .eq. '=') ist = 11
           read(PARAM2(ist:),*) elec_spec_flag
           elec_in_hms = (elec_spec_flag .eq. 1)
           elec_in_shms = (elec_spec_flag .eq. 2)
           goto 100
-       else if (PARAM2(1:11) .eq. 'HADRON_SPEC') then
+       else if (PARAM2(1:11) .eq. 'HADRON_SPEC' .or.
+     &          PARAM2(1:11) .eq. 'hadron_spec') then
           ist = 12
           if (PARAM2(12:12) .eq. '=') ist = 13
           read(PARAM2(ist:),*) hadron_spec_flag
           hadron_in_hms = (hadron_spec_flag .eq. 1)
           hadron_in_shms = (hadron_spec_flag .eq. 2)
           goto 100
-       else if (PARAM2(1:9) .eq. 'HADRON_PID') then
+       else if (PARAM2(1:9) .eq. 'HADRON_PID' .or.
+     &          PARAM2(1:9) .eq. 'hadron_pid') then
           ist = 10
           if (PARAM2(10:10) .eq. '=') ist = 11
           read(PARAM2(ist:),*) hadron_pid_flag
