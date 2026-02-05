@@ -57,6 +57,7 @@ c---------------------------------------------------------------------
       integer je,jp
       integer keep_pdg, keep_pdgabs_flag, keep_final_flag
       integer excl_flag, excl_rad_flag, ist
+      CHARACTER key*100, value*100
       logical do_keep_pdg, keep_abs_pdg, keep_final_only, has_keep_pdg
       logical do_exclusive, excl_allow_rad
       logical is_exclusive_parent
@@ -135,6 +136,10 @@ C...Read nuclear pdf correction order
 C...Read information for cross section used in radgen
   100  READ(*,'(A)',END=200) PARAM
        PARAM2 = ADJUSTL(PARAM)
+       ist = index(PARAM2,'!')
+       if (ist .gt. 0) PARAM2 = PARAM2(1:ist-1)
+       PARAM2 = ADJUSTL(PARAM2)
+       if (len_trim(PARAM2) .eq. 0) goto 100
 
 C--- Custom cards (do NOT forward to PYGIVE) ---------------------------
 C    Syntax (space-separated; optional '=' allowed):
@@ -151,73 +156,67 @@ C      DO_SIMC         1          (1=write SIMC .dat output)
 C      DO_PYTHIA_EVENT_RECORD 1   (1=write PYTHIA event record .txt)
 C-----------------------------------------------------------------------
 
-       if (PARAM2(1:8) .eq. 'KEEP_PDG') then
-          ist = 9
-          if (PARAM2(9:9) .eq. '=') ist = 10
-          read(PARAM2(ist:),*) keep_pdg
+       key = PARAM2
+       value = ' '
+       do I = 1, len_trim(PARAM2)
+          if (PARAM2(I:I) .eq. '=' .or. PARAM2(I:I) .eq. ' ') then
+             key = PARAM2(1:I-1)
+             value = PARAM2(I+1:)
+             exit
+          end if
+       end do
+       key = upcase(ADJUSTL(key))
+       value = ADJUSTL(value)
+       if (key .eq. 'ELEC') then
+          ist = index(value,' ')
+          if (ist .gt. 0) then
+             key = 'ELEC_'//upcase(ADJUSTL(value(1:ist-1)))
+             value = ADJUSTL(value(ist+1:))
+          end if
+       else if (key .eq. 'HADRON') then
+          ist = index(value,' ')
+          if (ist .gt. 0) then
+             key = 'HADRON_'//upcase(ADJUSTL(value(1:ist-1)))
+             value = ADJUSTL(value(ist+1:))
+          end if
+       end if
+
+       if (key .eq. 'KEEP_PDG') then
+          read(value,*) keep_pdg
           do_keep_pdg = (keep_pdg .ne. 0)
           goto 100
-       else if (PARAM2(1:11) .eq. 'KEEP_PDGABS') then
-          ist = 12
-          if (PARAM2(12:12) .eq. '=') ist = 13
-          read(PARAM2(ist:),*) keep_pdgabs_flag
+       else if (key .eq. 'KEEP_PDGABS') then
+          read(value,*) keep_pdgabs_flag
           keep_abs_pdg = (keep_pdgabs_flag .ne. 0)
           goto 100
-       else if (PARAM2(1:14) .eq. 'KEEP_PDG_FINAL') then
-          ist = 15
-          if (PARAM2(15:15) .eq. '=') ist = 16
-          read(PARAM2(ist:),*) keep_final_flag
+       else if (key .eq. 'KEEP_PDG_FINAL') then
+          read(value,*) keep_final_flag
           keep_final_only = (keep_final_flag .ne. 0)
           goto 100
-       else if (PARAM2(1:14) .eq. 'KEEP_EXCLUSIVE') then
-          ist = 15
-          if (PARAM2(15:15) .eq. '=') ist = 16
-          read(PARAM2(ist:),*) excl_flag
+       else if (key .eq. 'KEEP_EXCLUSIVE') then
+          read(value,*) excl_flag
           do_exclusive = (excl_flag .ne. 0)
           goto 100
-       else if (PARAM2(1:13) .eq. 'EXCL_ALLOW_RAD') then
-          ist = 14
-          if (PARAM2(14:14) .eq. '=') ist = 15
-          read(PARAM2(ist:),*) excl_rad_flag
+       else if (key .eq. 'EXCL_ALLOW_RAD') then
+          read(value,*) excl_rad_flag
           excl_allow_rad = (excl_rad_flag .ne. 0)
           goto 100
-       else if (PARAM2(1:13) .eq. 'EXCL_MASS_TOL') then
-          ist = 14
-          if (PARAM2(14:14) .eq. '=') ist = 15
-          read(PARAM2(ist:),*) excl_mass_flag
+       else if (key .eq. 'EXCL_MASS_TOL') then
+          read(value,*) excl_mass_flag
           excl_mass_tol = excl_mass_flag
           goto 100
-       else if (PARAM2(1:9) .eq. 'ELEC_SPEC' .or.
-     &          PARAM2(1:9) .eq. 'elec_spec' .or.
-     &          PARAM2(1:9) .eq. 'ELEC SPEC' .or.
-     &          PARAM2(1:9) .eq. 'elec spec') then
-          ist = 10
-          if (PARAM2(10:10) .eq. '=') ist = 11
-          read(PARAM2(ist:),*) elec_spec_flag
+       else if (key .eq. 'ELEC_SPEC') then
+          read(value,*) elec_spec_flag
           elec_in_hms = (elec_spec_flag .eq. 1)
           elec_in_shms = (elec_spec_flag .eq. 2)
           goto 100
-       else if (PARAM2(1:11) .eq. 'HADRON_SPEC' .or.
-     &          PARAM2(1:11) .eq. 'hadron_spec' .or.
-     &          PARAM2(1:11) .eq. 'HADRON SPEC' .or.
-     &          PARAM2(1:11) .eq. 'hadron spec') then
-          ist = 12
-          if (PARAM2(12:12) .eq. '=') ist = 13
-          read(PARAM2(ist:),*) hadron_spec_flag
+       else if (key .eq. 'HADRON_SPEC') then
+          read(value,*) hadron_spec_flag
           hadron_in_hms = (hadron_spec_flag .eq. 1)
           hadron_in_shms = (hadron_spec_flag .eq. 2)
           goto 100
-       else if (PARAM2(1:9) .eq. 'HADRON_PID' .or.
-     &          PARAM2(1:9) .eq. 'hadron_pid' .or.
-     &          PARAM2(1:10) .eq. 'HADRON PID' .or.
-     &          PARAM2(1:10) .eq. 'hadron pid') then
-          ist = 10
-          if (PARAM2(10:10) .eq. '=') then
-             ist = 11
-          else if (PARAM2(10:10) .eq. ' ') then
-             ist = 11
-          end if
-          read(PARAM2(ist:),*) hadron_pid_flag
+       else if (key .eq. 'HADRON_PID') then
+          read(value,*) hadron_pid_flag
           if (hadron_pid_flag .eq. 211) then
              do_pion = .true.
              do_kaon = .false.
@@ -232,18 +231,12 @@ C-----------------------------------------------------------------------
              do_proton = .true.
           end if
           goto 100
-       else if (PARAM2(1:7) .eq. 'DO_SIMC' .or.
-     &          PARAM2(1:7) .eq. 'do_simc') then
-          ist = 8
-          if (PARAM2(8:8) .eq. '=') ist = 9
-          read(PARAM2(ist:),*) keep_final_flag
+       else if (key .eq. 'DO_SIMC') then
+          read(value,*) keep_final_flag
           do_simc_out = (keep_final_flag .ne. 0)
           goto 100
-       else if (PARAM2(1:22) .eq. 'DO_PYTHIA_EVENT_RECORD' .or.
-     &          PARAM2(1:22) .eq. 'do_pythia_event_record') then
-          ist = 23
-          if (PARAM2(23:23) .eq. '=') ist = 24
-          read(PARAM2(ist:),*) keep_final_flag
+       else if (key .eq. 'DO_PYTHIA_EVENT_RECORD') then
+          read(value,*) keep_final_flag
           do_pythia_event_record = (keep_final_flag .ne. 0)
           goto 100
        end if
@@ -932,6 +925,22 @@ C-- require exactly one scattered lepton and one proton
          is_exclusive_parent = .false.
       end if
 
+      return
+      end
+
+      function upcase(str)
+      character*(*) str
+      character*(100) upcase
+      integer i, ich
+      upcase = str
+      do i = 1, len(str)
+         ich = ichar(str(i:i))
+         if (ich .ge. 97 .and. ich .le. 122) then
+            upcase(i:i) = char(ich - 32)
+         else
+            upcase(i:i) = str(i:i)
+         end if
+      end do
       return
       end
 
