@@ -583,13 +583,13 @@ C----- Exclusive selection: ep -> ep + KEEP_PDG (no other particles) ---
             if (phiE0 .lt. 0d0) phiE0 = phiE0 + twoPi
             sectorWidth = twoPi / 12.d0
             if (elec_in_hms) then
-               deltaphi = -pi2/2.d0
+               phi_center = -pi2/2.d0
             else if (elec_in_shms) then
-               deltaphi = pi2/2.d0
+               phi_center = pi2/2.d0
             else
-               deltaphi = 0d0
+               phi_center = -pi2/2.d0
             end if
-            deltaphi = deltaphi
+            deltaphi = phi_center
      &              - (int(phiE0/sectorWidth) + 0.5d0)*sectorWidth
             cosd = cos(deltaphi)
             sind = sin(deltaphi)
@@ -612,7 +612,13 @@ C----- Exclusive selection: ep -> ep + KEEP_PDG (no other particles) ---
 
             do I = 1, tracknr
                if (K(I,1) /= 1 .or. K(I,2) /= targetPID) cycle
-               phiP0 = atan2(P(I,2),P(I,1))
+               pxP = P(I,1)
+               pyP = P(I,2)
+               oldpxP = pxP
+               oldpyP = pyP
+               pxP = oldpxP*cosd - oldpyP*sind
+               pyP = oldpxP*sind + oldpyP*cosd
+               phiP0 = atan2(pyP,pxP)
                delPhi = phi_center - phiP0
                if (delPhi > pi2) then
                   delPhi = delPhi - twoPi
@@ -726,7 +732,14 @@ C----- Exclusive selection: ep -> ep + KEEP_PDG (no other particles) ---
          phiE0 = atan2(pyE,pxE)
          if (phiE0 .lt. 0d0) phiE0 = phiE0 + twoPi
          sectorWidth = twoPi / 12.d0
-         deltaphi    = 1.57079632679d0                          
+         if (elec_in_hms) then
+            phi_center = -pi2/2.d0
+         else if (elec_in_shms) then
+            phi_center = pi2/2.d0
+         else
+            phi_center = -pi2/2.d0
+         end if
+         deltaphi = phi_center
      &              - (int(phiE0/sectorWidth) + 0.5d0)*sectorWidth
          cosd = cos(deltaphi)
          sind = sin(deltaphi)
@@ -747,15 +760,26 @@ C----- Exclusive selection: ep -> ep + KEEP_PDG (no other particles) ---
       ! ———— compute angular window in radians ——————————————
       deg2rad = pi2/180.d0
       maxOff  = 20.d0*deg2rad
+      if (hadron_in_hms) then
+         phi_center = -pi2/2.d0
+      else if (hadron_in_shms) then
+         phi_center = pi2/2.d0
+      else
+         phi_center = pi2/2.d0
+      end if
 
       do I = 1, tracknr
 
          ! skip if not final-state hadron of chosen PID
          if (K(I,1) /= 1 .or. K(I,2) /= targetPID) cycle
 
-         ! compute Δφ relative to unrotated electron
-         phiP0 = atan2(P(I,2),P(I,1))
-         delPhi = phiE0 - phiP0
+         ! compute Δφ in rotated frame relative to hadron center
+         pxP = P(I,1);  pyP = P(I,2)
+         oldpxP = pxP;  oldpyP = pyP
+         pxP = oldpxP*cosd - oldpyP*sind
+         pyP = oldpxP*sind + oldpyP*cosd
+         phiP0 = atan2(pyP,pxP)
+         delPhi = phi_center - phiP0
          if (delPhi > pi2) then
             delPhi = delPhi - twoPi
          end if
