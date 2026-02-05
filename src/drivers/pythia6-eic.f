@@ -61,9 +61,14 @@ c---------------------------------------------------------------------
       logical do_exclusive, excl_allow_rad
       logical is_exclusive_parent
       logical simc_event_ok
+      logical elec_in_hms, elec_in_shms
+      logical hadron_in_hms, hadron_in_shms
+      integer elec_spec_flag, hadron_spec_flag
+      integer hadron_pid_flag
       real*8 excl_mass_tol, excl_mass_flag
       COMMON /EXCLCUTS/ excl_mass_tol
       real*8 pxE,pyE,pzE,eE,pxP,pyP,pzP,eP,phiE,phiP,delPhi,bestPhi
+      real*8 phi_center
       real*8 vxloc
 
 c---------------------------------------------------------------------
@@ -96,6 +101,10 @@ c ---------------------------------------------------------------------
       do_exclusive    = .false.
       excl_allow_rad  = .false.
       excl_mass_tol   = 0.05d0
+      elec_in_hms     = .true.
+      elec_in_shms    = .false.
+      hadron_in_hms   = .false.
+      hadron_in_shms  = .true.
 
 C...Read output file name
        READ(*,*) outname
@@ -135,6 +144,9 @@ C      KEEP_PDG_FINAL  1          (1=final-state only, i.e. K(I,1)=1)
 C      KEEP_EXCLUSIVE  1          (require exclusive ep -> ep + KEEP_PDG)
 C      EXCL_ALLOW_RAD  1          (allow radiative events if RadState!=0)
 C      EXCL_MASS_TOL   0.05       (GeV, hadronic system mass tolerance)
+C      ELEC_SPEC       1          (1=HMS, 2=SHMS)
+C      HADRON_SPEC     2          (1=HMS, 2=SHMS)
+C      HADRON_PID      2212       (2212=p, 211=pi+, 321=K+)
 C      DO_SIMC         1          (1=write SIMC .dat output)
 C      DO_PYTHIA_EVENT_RECORD 1   (1=write PYTHIA event record .txt)
 C-----------------------------------------------------------------------
@@ -174,6 +186,38 @@ C-----------------------------------------------------------------------
           if (PARAM2(14:14) .eq. '=') ist = 15
           read(PARAM2(ist:),*) excl_mass_flag
           excl_mass_tol = excl_mass_flag
+          goto 100
+       else if (PARAM2(1:9) .eq. 'ELEC_SPEC') then
+          ist = 10
+          if (PARAM2(10:10) .eq. '=') ist = 11
+          read(PARAM2(ist:),*) elec_spec_flag
+          elec_in_hms = (elec_spec_flag .eq. 1)
+          elec_in_shms = (elec_spec_flag .eq. 2)
+          goto 100
+       else if (PARAM2(1:11) .eq. 'HADRON_SPEC') then
+          ist = 12
+          if (PARAM2(12:12) .eq. '=') ist = 13
+          read(PARAM2(ist:),*) hadron_spec_flag
+          hadron_in_hms = (hadron_spec_flag .eq. 1)
+          hadron_in_shms = (hadron_spec_flag .eq. 2)
+          goto 100
+       else if (PARAM2(1:9) .eq. 'HADRON_PID') then
+          ist = 10
+          if (PARAM2(10:10) .eq. '=') ist = 11
+          read(PARAM2(ist:),*) hadron_pid_flag
+          if (hadron_pid_flag .eq. 211) then
+             do_pion = .true.
+             do_kaon = .false.
+             do_proton = .false.
+          else if (hadron_pid_flag .eq. 321) then
+             do_pion = .false.
+             do_kaon = .true.
+             do_proton = .false.
+          else
+             do_pion = .false.
+             do_kaon = .false.
+             do_proton = .true.
+          end if
           goto 100
        else if (PARAM2(1:7) .eq. 'DO_SIMC' .or.
      &          PARAM2(1:7) .eq. 'do_simc') then
@@ -531,7 +575,14 @@ C----- Exclusive selection: ep -> ep + KEEP_PDG (no other particles) ---
             phiE0 = atan2(pyE,pxE)
             if (phiE0 .lt. 0d0) phiE0 = phiE0 + twoPi
             sectorWidth = twoPi / 12.d0
-            deltaphi    = 1.57079632679d0                          
+            if (elec_in_hms) then
+               deltaphi = -pi2/2.d0
+            else if (elec_in_shms) then
+               deltaphi = pi2/2.d0
+            else
+               deltaphi = 0d0
+            end if
+            deltaphi = deltaphi
      &              - (int(phiE0/sectorWidth) + 0.5d0)*sectorWidth
             cosd = cos(deltaphi)
             sind = sin(deltaphi)
@@ -544,11 +595,18 @@ C----- Exclusive selection: ep -> ep + KEEP_PDG (no other particles) ---
             end if
             deg2rad = pi2/180.d0
             maxOff  = 20.d0*deg2rad
+            if (hadron_in_hms) then
+               phi_center = -pi2/2.d0
+            else if (hadron_in_shms) then
+               phi_center = pi2/2.d0
+            else
+               phi_center = pi2/2.d0
+            end if
 
             do I = 1, tracknr
                if (K(I,1) /= 1 .or. K(I,2) /= targetPID) cycle
                phiP0 = atan2(P(I,2),P(I,1))
-               delPhi = phiE0 - phiP0
+               delPhi = phi_center - phiP0
                if (delPhi > pi2) then
                   delPhi = delPhi - twoPi
                end if
