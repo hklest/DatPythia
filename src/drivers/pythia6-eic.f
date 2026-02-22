@@ -802,9 +802,15 @@ C----- Exclusive selection: ep -> ep + KEEP_PDG (no other particles) ---
          call random_number(vxloc)
          vxloc = -7.5d0 + 15.d0 * vxloc
 
-         write(simcLun,'(11F12.6)') 
-     &      pxP,pyP,pzP,eP,vxloc,
-     &      pxE,pyE,pzE,eE,vxloc,1.0
+         if (elec_in_hms) then
+            write(simcLun,'(11F12.6)') 
+     &         pxE,pyE,pzE,eE,vxloc,
+     &         pxP,pyP,pzP,eP,vxloc,1.0
+         else
+            write(simcLun,'(11F12.6)') 
+     &         pxP,pyP,pzP,eP,vxloc,
+     &         pxE,pyE,pzE,eE,vxloc,1.0
+         end if
 
       end do
 
